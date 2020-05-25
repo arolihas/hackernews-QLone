@@ -1,48 +1,31 @@
 const { GraphQLServer } = require('graphql-yoga')
-
-let links = [{
-	id: 'link-0',
-	url: 'www.howtographql.com',
-	description: 'Fullstack tutorial for GraphQL'
-}]
-let idCount = links.length
+const { prisma } = require('./generated/prisma-client')
 
 const resolvers = {
   Query: {
     info: () => 'This is the API of the Hackernews Clone',
-    feed: () => links,
-    link: (id) => links[id],
+    feed: (root, args, context, info) => {
+     return context.prisma.links()
+    }
   },
   Mutation: {
-    post: (parent, args) => {
-      const link = {
-        id: `link-${idCount++}`,
-	description: args.description,
+    post: (root, args, context) => {
+      return context.prisma.createLink({
 	url: args.url,
-      }
-      links.push(link)
-      return link
+	description: args.description,
+      })
     },
-    update: (parent, args) => {
-      toUpdate = links.find(e => e.id === args.id)
-      const newLink = {
-        id: args.id,
-	url: args.url ? args.url : toUpdate.url,
-	description: args.description ? args.description : toUpdate.description
-      }
-      links[links.indexOf(toUpdate)] = newLink 
-      return newLink
-    },
-    delete: (parent, args) => {
-      deleted = links.find(e => e.id === args.id)
-      links = links.filter(e => e.id !== args.id)
-      return deleted
+    delete: (root, args, context) => {
+      return context.prisma.deleteLink({
+	id: args.id,
+      })
     }
   },
 }
 const server = new GraphQLServer({
 	typeDefs: './src/schema.graphql',
 	resolvers,
+	context: { prisma },
 })
 
 server.start(() => console.log('Server is running on http://localhost:4000'))
